@@ -1,0 +1,20 @@
+{
+  "$schema": "https://wails.io/schemas/config.json",
+  "name": "powerplan",
+  "outputfilename": "powerplan",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Daomak",
+    "email": "daomak@qq.com"
+  },
+  "info": {
+    "companyName": "Daomak",
+    "productName": "电源计划",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright © 2026 Daomak",
+    "comments": "DaoKits 电源计划工具"
+  }
+}
