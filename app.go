@@ -1,7 +1,8 @@
-package main
+﻿package main
 
 import (
 	"context"
+	"os/exec"
 	"sort"
 	"strconv"
 	"strings"
@@ -529,4 +530,12 @@ func (a *App) CreateOfficeMode(cpuType string) (string, error) {
 // IsSystemPlan 判断是否为系统默认计划（不可删除）
 func (a *App) IsSystemPlan(guid string) bool {
 	return guid == GUIDHighPerformance || guid == GUIDBalanced || guid == GUIDPowerSaver
+}
+
+
+// OpenURL 打开浏览器访问指定地址
+func (a *App) OpenURL(url string) {
+	cmd := exec.Command("cmd", "/c", "start", url)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd.Start()
 }
