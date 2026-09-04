@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"embed"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"syscall"
@@ -11,6 +12,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"golang.org/x/sys/windows"
 	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
@@ -18,8 +20,17 @@ import (
 var assets embed.FS
 
 func main() {
+	// 创建命名互斥体，防止多开
+	mutexName, _ := windows.UTF16PtrFromString("Global\\DaoPowerplan_SingleInstance")
+	mutex, err := windows.CreateMutex(nil, false, mutexName)
+	if err != nil {
+		// 互斥体已存在或创建失败，直接退出
+		os.Exit(0)
+	}
+	defer windows.CloseHandle(mutex)
+
 	app := NewApp()
-	err := wails.Run(&options.App{
+	err = wails.Run(&options.App{
 		Title:  "DaoPowerplan",
 		Width:  960,
 		Height: 720,
