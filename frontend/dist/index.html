@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DaoPowerplan</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f7f8fa;
+    color: #1a1d23;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    overflow: hidden;
+  }
+  .container { padding: 20px; height: 100vh; display: flex; flex-direction: column; }
+
+  /* 创建计划区域 */
+  .create-section {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .create-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #1a1d23;
+  }
+  .create-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .create-input {
+    flex: 1;
+    padding: 9px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
+  }
+  .create-input:focus { border-color: #2563eb; }
+  .custom-select {
+    position: relative;
+    min-width: 140px;
+  }
+  .custom-select-trigger {
+    padding: 9px 32px 9px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 13px;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: border-color 0.15s;
+    user-select: none;
+  }
+  .custom-select-trigger:hover { border-color: #d1d5db; }
+  .custom-select.open .custom-select-trigger { border-color: #2563eb; }
+  .custom-select-arrow {
+    color: #9ca3af;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    margin-left: 8px;
+  }
+  .custom-select.open .custom-select-arrow { transform: rotate(180deg); }
+  .custom-select-options {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+    display: none;
+    z-index: 100;
+  }
+  .custom-select.open .custom-select-options { display: block; }
+  .custom-select-option {
+    padding: 10px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .custom-select-option:hover { background: #f3f4f6; }
+  .custom-select-option.selected {
+    background: #eff6ff;
+    color: #2563eb;
+    font-weight: 500;
+  }
+  .create-btn {
+    padding: 9px 20px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .create-btn:hover { opacity: 0.9; }
+  .preset-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .preset-btn {
+    padding: 10px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    background: #fff;
+    transition: all 0.15s;
+    text-align: left;
+    flex: 1;
+    min-width: 0;
+  }
+  .preset-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .preset-btn.game { color: #dc2626; border-color: #fecaca; }
+  .preset-btn.game:hover { background: #fef2f2; }
+  .preset-btn.office { color: #2563eb; border-color: #bfdbfe; }
+  .preset-btn.office:hover { background: #eff6ff; }
+  .preset-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .preset-desc {
+    font-size: 10px;
+    opacity: 0.7;
+    font-weight: 400;
+  }
+
+  /* 当前计划 */
+  .current-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 0 4px;
+  }
+  .current-label {
+    font-size: 13px;
+    color: #6b7280;
+  }
+  .current-label span {
+    color: #2563eb;
+    font-weight: 600;
+  }
+  .refresh-btn {
+    padding: 6px 14px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    color: #6b7280;
+  }
+  .refresh-btn:hover { background: #e5e7eb; }
+
+  /* 计划列表 */
+  .plan-list-section {
+    flex: 1;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 8px;
+  }
+  .plan-list-section::-webkit-scrollbar { width: 6px; }
+  .plan-list-section::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+  .about-section {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+  .about-divider {
+    height: 1px;
+    background: #e5e7eb;
+    margin-bottom: 12px;
+  }
+  .about-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #9ca3af;
+  }
+  .about-name { font-weight: 600; color: #6b7280; }
+  .about-sep { color: #d1d5db; }
+  .about-link {
+    color: #2563eb;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .about-link:hover { text-decoration: underline; }
+
+  .plan-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+  .plan-item:hover { background: #f3f4f6; }
+  .plan-item.active { background: #eff6ff; }
+  .plan-item-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .plan-item-name {
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .plan-item-name .active-tag {
+    font-size: 10px;
+    background: #2563eb;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .plan-item-name .system-tag {
+    font-size: 10px;
+    background: #f3f4f6;
+    color: #6b7280;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .plan-item-guid {
+    font-size: 10px;
+    color: #9ca3af;
+    font-family: monospace;
+    margin-top: 3px;
+  }
+  .plan-item-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .mini-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: opacity 0.15s;
+  }
+  .mini-btn:hover { opacity: 0.8; }
+  .mini-btn.use { background: #2563eb; color: #fff; }
+  .mini-btn.edit { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+  .mini-btn.del { background: #fee2e2; color: #dc2626; }
+  .mini-btn.use:disabled, .mini-btn.del:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* 设置编辑面板 */
+  .settings-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 480px;
+    background: #fff;
+    border-left: 1px solid #e5e7eb;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.08);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+  }
+  .settings-panel.show { transform: translateX(0); }
+  .settings-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .settings-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .settings-close {
+    width: 28px; height: 28px;
+    border: none;
+    background: #f3f4f6;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .settings-close:hover { background: #e5e7eb; }
+  .settings-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+  }
+  .settings-body::-webkit-scrollbar { width: 6px; }
+  .settings-body::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+  .setting-group {
+    margin-bottom: 20px;
+  }
+  .setting-group-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2563eb;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .setting-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .setting-item:last-child { border-bottom: none; }
+  .setting-name {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #1a1d23;
+  }
+  .setting-inputs {
+    display: flex;
+    gap: 10px;
+  }
+  .setting-input-group {
+    flex: 1;
+  }
+  .setting-input-group label {
+    font-size: 11px;
+    color: #9ca3af;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .setting-input-group input,
+  .setting-input-group select {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 12px;
+    outline: none;
+    background: #fff;
+  }
+  .setting-input-group input:focus,
+  .setting-input-group select:focus { border-color: #2563eb; }
+  .settings-footer {
+    padding: 14px 20px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 10px;
+  }
+  .settings-footer button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .btn-save { background: #2563eb; color: #fff; }
+  .btn-save:hover { opacity: 0.9; }
+  .btn-cancel { background: #f3f4f6; color: #374151; }
+  .btn-cancel:hover { background: #e5e7eb; }
+
+  /* UI 弹窗 */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 14px;
+    padding: 24px;
+    min-width: 300px;
+    max-width: 360px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .modal-icon { font-size: 36px; margin-bottom: 12px; }
+  .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+  .modal-msg { font-size: 13px; color: #6b7280; margin-bottom: 18px; line-height: 1.5; }
+  .modal-buttons { display: flex; gap: 8px; justify-content: center; }
+  .modal-btn {
+    padding: 8px 22px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .modal-btn:hover { opacity: 0.85; }
+  .modal-btn.primary { background: #2563eb; color: #fff; }
+  .modal-btn.danger { background: #dc2626; color: #fff; }
+  .modal-btn.cancel { background: #f3f4f6; color: #374151; }
+
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: #9ca3af;
+    font-size: 13px;
+  }
+
+  /* Toast 自动提示 */
+  .toast {
+    position: fixed;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: #1a1d23;
+    color: #fff;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .toast.success { background: #16a34a; }
+  .toast.error { background: #dc2626; }
+  .toast.warning { background: #d97706; }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- 创建电源计划 -->
+  <div class="create-section">
+    <div class="create-title">创建电源计划</div>
+    <div class="create-row">
+      <input type="text" class="create-input" id="new-plan-name" placeholder="输入新计划名称">
+      <div class="custom-select" id="base-plan-select">
+        <div class="custom-select-trigger" onclick="toggleBaseSelect()">
+          <span id="base-select-label">基于：均衡</span>
+          <svg class="custom-select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+        <div class="custom-select-options" id="base-select-options">
+          <div class="custom-select-option selected" data-value="381b4222-f694-41f0-9685-ff5bb260df2e" onclick="selectBaseOption(this)">基于：均衡</div>
+          <div class="custom-select-option" data-value="8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c" onclick="selectBaseOption(this)">基于：高性能</div>
+          <div class="custom-select-option" data-value="a1841308-3541-4fab-bc81-f71556f20b4a" onclick="selectBaseOption(this)">基于：节能</div>
+        </div>
+      </div>
+      <button class="create-btn" onclick="createPlan()">创建</button>
+    </div>
+    <div class="preset-row">
+      <button class="preset-btn game" onclick="createPreset('game','intel')">
+        <div class="preset-title">🎮 游戏模式 Intel</div>
+        <div class="preset-desc">性能拉满 · 大核优先</div>
+      </button>
+      <button class="preset-btn game" onclick="createPreset('game','amd')">
+        <div class="preset-title">🎮 游戏模式 AMD</div>
+        <div class="preset-desc">全核满载 · 极致性能</div>
+      </button>
+      <button class="preset-btn office" onclick="createPreset('office','intel')">
+        <div class="preset-title">📋 办公模式 Intel</div>
+        <div class="preset-desc">平衡省电 · 智能调度</div>
+      </button>
+      <button class="preset-btn office" onclick="createPreset('office','amd')">
+        <div class="preset-title">📋 办公模式 AMD</div>
+        <div class="preset-desc">均衡能效 · 安静办公</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- 当前计划 -->
+  <div class="current-bar">
+    <div class="current-label">当前计划：<span id="current-plan">加载中...</span></div>
+    <button class="refresh-btn" onclick="refresh()">刷新</button>
+  </div>
+
+  <!-- 计划列表 -->
+  <div class="plan-list-section" id="plan-list">
+    <div class="loading">加载中...</div>
+  </div>
+
+  <!-- 关于软件 -->
+  <div class="about-section">
+    <div class="about-divider"></div>
+    <div class="about-content">
+      <span class="about-name">DaoPowerplan</span>
+      <span class="about-sep">·</span>
+      <span class="about-author">作者：<a class="about-link" onclick="openLink('https://www.daomak.com')">Daomak</a></span>
+      <span class="about-sep">·</span>
+      <span class="about-author">开源：<a class="about-link" onclick="openLink('https://github.com/Daomak/DaoPowerplan')">GitHub</a> / <a class="about-link" onclick="openLink('https://gitee.com/daomak/dao-powerplan')">Gitee</a></span>
+    </div>
+  </div>
+</div>
+
+<!-- 设置编辑面板 -->
+<div class="settings-panel" id="settings-panel">
+  <div class="settings-header">
+    <h3 id="settings-plan-name">电源计划设置</h3>
+    <button class="settings-close" onclick="closeSettings()">✕</button>
+  </div>
+  <div class="settings-body" id="settings-body">
+    <div class="loading">加载设置中...</div>
+  </div>
+  <div class="settings-footer">
+    <button class="btn-cancel" onclick="closeSettings()">取消</button>
+    <button class="btn-save" onclick="saveSettings()">保存修改</button>
+  </div>
+</div>
+
+<!-- UI 弹窗 -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-icon" id="modal-icon">✓</div>
+    <div class="modal-title" id="modal-title">提示</div>
+    <div class="modal-msg" id="modal-msg"></div>
+    <div class="modal-buttons" id="modal-buttons">
+      <button class="modal-btn primary" onclick="closeModal()">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast 自动提示 -->
+<div class="toast" id="toast"></div>
+
+<script>
+const go = window.go && window.go.main && window.go.main.App;
+let currentPlans = [];
+let editingPlanGUID = '';
+let editingSettings = [];
+
+function showModal(icon, title, msg, buttons) {
+  document.getElementById('modal-icon').textContent = icon;
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-msg').textContent = msg;
+  const btnContainer = document.getElementById('modal-buttons');
+  if (buttons && buttons.length > 0) {
+    btnContainer.innerHTML = buttons.map(b =>
+      `<button class="modal-btn ${b.type}" onclick="${b.action}">${b.text}</button>`
+    ).join('');
+  } else {
+    btnContainer.innerHTML = '<button class="modal-btn primary" onclick="closeModal()">确定</button>';
+  }
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+
+function showToast(msg, type) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = 'toast ' + (type || '');
+  // 触发重排
+  void toast.offsetWidth;
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2500);
+}
+
+let pendingDeleteGUID = '';
+
+function confirmDelete(guid, name) {
+  pendingDeleteGUID = guid;
+  showModal('⚠️', '确认删除', '确定要删除电源计划「' + name + '」吗？此操作不可撤销。', [
+    { text: '取消', type: 'cancel', action: 'closeModal()' },
+    { text: '删除', type: 'danger', action: 'doDelete()' }
+  ]);
+}
+
+async function doDelete() {
+  closeModal();
+  if (!go || !pendingDeleteGUID) return;
+  try {
+    await go.DeletePlan(pendingDeleteGUID);
+    showToast('✓ 已删除电源计划', 'success');
+    pendingDeleteGUID = '';
+    refresh();
+  } catch(e) {
+    showModal('❌', '错误', '删除失败（系统默认计划不可删除）');
+    pendingDeleteGUID = '';
+  }
+}
+
+async function refresh() {
+  if (!go) return;
+  try {
+    const current = await go.GetCurrentPlan();
+    document.getElementById('current-plan').textContent = current;
+
+    const plans = await go.ListPlans();
+    currentPlans = plans;
+    const list = document.getElementById('plan-list');
+    if (plans.length === 0) {
+      list.innerHTML = '<div class="loading">暂无电源计划</div>';
+      return;
+    }
+    list.innerHTML = plans.map(p => {
+      const isSystem = p.guid === '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' ||
+                       p.guid === '381b4222-f694-41f0-9685-ff5bb260df2e' ||
+                       p.guid === 'a1841308-3541-4fab-bc81-f71556f20b4a';
+      return `
+      <div class="plan-item ${p.active ? 'active' : ''}">
+        <div class="plan-item-info">
+          <div class="plan-item-name">
+            ${p.name}
+            ${p.active ? '<span class="active-tag">使用中</span>' : ''}
+            ${isSystem ? '<span class="system-tag">系统</span>' : ''}
+          </div>
+          <div class="plan-item-guid">${p.guid}</div>
+        </div>
+        <div class="plan-item-actions">
+          <button class="mini-btn use" ${p.active ? 'disabled' : ''} onclick="usePlan('${p.guid}')">使用</button>
+          <button class="mini-btn edit" onclick="openSettings('${p.guid}','${p.name}')">设置</button>
+          <button class="mini-btn del" ${p.active || isSystem ? 'disabled' : ''} onclick="confirmDelete('${p.guid}','${p.name}')">删除</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    showModal('❌', '错误', '获取电源计划失败: ' + e.message);
+  }
+}
+
+async function usePlan(guid) {
+  if (!go) return;
+  try {
+    await go.SetPlanByGUID(guid);
+    showToast('✓ 已切换电源计划', 'success');
+    refresh();
+  } catch(e) {
+    showModal('❌', '错误', '切换电源计划失败');
+  }
+}
+
+// 自定义下拉框
+function toggleBaseSelect() {
+  document.getElementById('base-plan-select').classList.toggle('open');
+}
+function selectBaseOption(el) {
+  const value = el.dataset.value;
+  const label = el.textContent;
+  document.getElementById('base-select-label').textContent = label;
+  document.querySelectorAll('#base-select-options .custom-select-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('base-plan-select').classList.remove('open');
+  document.getElementById('base-plan-select').dataset.value = value;
+}
+// 点击外部关闭下拉框
+document.addEventListener('click', (e) => {
+  const select = document.getElementById('base-plan-select');
+  if (select && !select.contains(e.target)) {
+    select.classList.remove('open');
+  }
+});
+
+async function createPlan() {
+  const name = document.getElementById('new-plan-name').value.trim();
+  if (!name) { showModal('⚠️', '提示', '请输入计划名称'); return; }
+  const baseGUID = document.getElementById('base-plan-select').dataset.value || '381b4222-f694-41f0-9685-ff5bb260df2e';
+  if (!go) return;
+  try {
+    const guid = await go.CreateCustomPlan(name, baseGUID);
+    if (guid) {
+      showToast('✓ 已创建电源计划: ' + name, 'success');
+      document.getElementById('new-plan-name').value = '';
+      refresh();
+    } else {
+      showModal('❌', '错误', '创建失败');
+    }
+  } catch(e) {
+    showModal('❌', '错误', '创建电源计划失败');
+  }
+}
+
+async function createPreset(type, cpu) {
+  if (!go) return;
+  const typeName = type === 'game' ? '游戏模式' : '办公模式';
+  const cpuName = cpu === 'intel' ? 'Intel' : 'AMD';
+  const planName = typeName + ' (' + cpuName + ')';
+
+  // 检查是否已存在
+  try {
+    const existing = await go.ListPlans();
+    const found = existing.find(p => p.name === planName);
+    if (found) {
+      showModal('⚠️', '提示', '「' + planName + '」已存在，无需重复创建');
+      return;
+    }
+  } catch(e) {}
+
+  try {
+    let guid;
+    if (type === 'game') {
+      guid = await go.CreateGameMode(cpu);
+    } else {
+      guid = await go.CreateOfficeMode(cpu);
+    }
+    if (guid) {
+      showToast('✓ 已创建' + typeName + ' (' + cpuName + ')并自动应用', 'success');
+      refresh();
+    } else {
+      showModal('❌', '错误', '创建失败');
+    }
+  } catch(e) {
+    showModal('❌', '错误', `创建${typeName}失败`);
+  }
+}
+
+async function openSettings(guid, name) {
+  editingPlanGUID = guid;
+  document.getElementById('settings-plan-name').textContent = name + ' - 设置';
+  document.getElementById('settings-body').innerHTML = '<div class="loading">加载设置中...</div>';
+  document.getElementById('settings-panel').classList.add('show');
+
+  if (!go) return;
+  try {
+    const settings = await go.GetPlanSettings(guid);
+    editingSettings = settings;
+    renderSettings(settings);
+  } catch(e) {
+    document.getElementById('settings-body').innerHTML = '<div class="loading">加载失败</div>';
+  }
+}
+
+function renderSettings(settings) {
+  // 按子组分组
+  const groups = {};
+  settings.forEach(s => {
+    const groupName = s.groupGuid2 || s.groupGuid;
+    if (!groups[groupName]) groups[groupName] = [];
+    groups[groupName].push(s);
+  });
+
+  let html = '';
+  let globalIdx = 0;
+  for (const [groupName, items] of Object.entries(groups)) {
+    const displayName = groupName === groupName.toUpperCase() ? '其他设置' : groupName;
+    html += `<div class="setting-group">
+      <div class="setting-group-title">${displayName}</div>`;
+    items.forEach((s) => {
+      const idx = globalIdx++;
+      const hasOptions = s.possibleValues && s.possibleValues.length > 0;
+      const acVal = parseInt(s.currentAC) || 0;
+      const dcVal = parseInt(s.currentDC) || 0;
+
+      let acInput, dcInput;
+      if (hasOptions) {
+        acInput = `<select id="ac-${idx}" data-guid="${s.settingGuid}">
+          ${s.possibleValues.map(p => `<option value="${parseInt(p.index)}" ${parseInt(p.index) === acVal ? 'selected' : ''}>${p.name}</option>`).join('')}
+        </select>`;
+        dcInput = `<select id="dc-${idx}" data-guid="${s.settingGuid}">
+          ${s.possibleValues.map(p => `<option value="${parseInt(p.index)}" ${parseInt(p.index) === dcVal ? 'selected' : ''}>${p.name}</option>`).join('')}
+        </select>`;
+      } else {
+        acInput = `<input type="number" id="ac-${idx}" value="${acVal}" data-guid="${s.settingGuid}">`;
+        dcInput = `<input type="number" id="dc-${idx}" value="${dcVal}" data-guid="${s.settingGuid}">`;
+      }
+
+      html += `<div class="setting-item">
+        <div class="setting-name">${s.name}</div>
+        <div class="setting-inputs">
+          <div class="setting-input-group">
+            <label>接通电源</label>
+            ${acInput}
+          </div>
+          <div class="setting-input-group">
+            <label>使用电池</label>
+            ${dcInput}
+          </div>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  document.getElementById('settings-body').innerHTML = html || '<div class="loading">暂无设置项</div>';
+}
+
+async function saveSettings() {
+  if (!go || !editingPlanGUID) return;
+  const inputs = document.querySelectorAll('#settings-body input');
+  let count = 0;
+  for (const input of inputs) {
+    const guid = input.dataset.guid;
+    const id = input.id;
+    const value = input.value;
+    if (id.startsWith('ac-')) {
+      await go.SetSettingValue(editingPlanGUID, guid, value, '');
+      count++;
+    } else if (id.startsWith('dc-')) {
+      await go.SetSettingValue(editingPlanGUID, guid, '', value);
+      count++;
+    }
+  }
+  showToast('✓ 已保存 ' + count + ' 项设置', 'success');
+  closeSettings();
+  refresh();
+}
+
+function closeSettings() {
+  document.getElementById('settings-panel').classList.remove('show');
+}
+
+function openLink(url) {
+  if (window.go && window.go.main && window.go.main.App) {
+    window.go.main.App.OpenURL(url);
+  }
+}
+
+window.onload = () => { setTimeout(refresh, 300); };
+</script>
+</body>
+</html>
